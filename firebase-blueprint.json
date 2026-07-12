@@ -1,0 +1,31 @@
+{
+  "entities": {
+    "ChatSession": {
+      "title": "ChatSession",
+      "description": "A chat session record for the Brackenfell Gas assistant",
+      "type": "object",
+      "properties": {
+        "userDetails": {
+          "type": "object",
+          "description": "The user's contact details"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the session was created"
+        },
+        "messages": {
+          "type": "array",
+          "description": "The chat messages exchanged in this session"
+        }
+      },
+      "required": ["userDetails", "createdAt", "messages"]
+    }
+  },
+  "firestore": {
+    "/chatSessions/{sessionId}": {
+      "schema": "ChatSession",
+      "description": "Stored chat sessions with user details and history"
+    }
+  }
+}

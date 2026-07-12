@@ -1,0 +1,6 @@
+{
+  "name": "Brackenfell Gas Chatbot",
+  "description": "An online customer service chatbot for brackenfellgas.co.za using Gemini.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

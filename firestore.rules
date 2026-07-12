@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened primitive helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Schema Validation Helper
+    function isValidChatSession(data) {
+      return data.keys().hasAll(['userDetails', 'createdAt', 'messages']) 
+        && data.keys().size() == 3
+        && data.userDetails is map
+        && data.userDetails.keys().hasAll(['name', 'email', 'phone'])
+        && data.userDetails.keys().size() == 3
+        && data.userDetails.name is string && data.userDetails.name.size() <= 256
+        && data.userDetails.email is string && data.userDetails.email.size() <= 256
+        && data.userDetails.phone is string && data.userDetails.phone.size() <= 50
+        && data.messages is list
+        && data.messages.size() <= 1000;
+    }
+
+    match /chatSessions/{sessionId} {
+      // Read actions
+      allow get: if isSignedIn() 
+        && isValidId(sessionId)
+        && existing().userDetails.email == request.auth.token.email;
+
+      allow list: if isSignedIn() 
+        && resource.data.userDetails.email == request.auth.token.email;
+
+      // Write actions
+      allow create: if isEmailVerified()
+        && isValidId(sessionId)
+        && isValidChatSession(incoming())
+        && incoming().createdAt == request.time
+        && incoming().userDetails.email == request.auth.token.email;
+
+      allow update: if isEmailVerified()
+        && isValidId(sessionId)
+        && isValidChatSession(incoming())
+        && existing().userDetails.email == request.auth.token.email
+        && incoming().userDetails.email == existing().userDetails.email
+        && incoming().createdAt == existing().createdAt
+        && incoming().diff(existing()).affectedKeys().hasOnly(['messages']);
+
+      allow delete: if isEmailVerified()
+        && existing().userDetails.email == request.auth.token.email;
+    }
+  }
+}
